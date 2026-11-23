@@ -103,11 +103,12 @@ def get_annual_metric(facts, tags):
                         "Year End": item["end"],
                         "Value": item["val"],
                         "Filed": item["filed"],
+                        "Accession": item.get("accn"),
                         "Tag Priority": tags.index(tag)
                     })
 
     if not all_entries:
-        return pd.DataFrame(columns=["Year End", "Value"])
+        return pd.DataFrame(columns=["Year End", "Value", "Accession"])
 
     df = pd.DataFrame(all_entries)
 
@@ -125,7 +126,7 @@ def get_annual_metric(facts, tags):
 
     df = df.sort_values("Year End").tail(5)
 
-    return df[["Year End", "Value"]]
+    return df[["Year End", "Value", "Accession"]]
 
 
 def get_financial_data(cik):
@@ -135,7 +136,13 @@ def get_financial_data(cik):
 
     for metric, tags in METRICS.items():
         df = get_annual_metric(facts, tags)
-        df = df.rename(columns={"Value": metric})
+
+        df = df.rename(
+            columns={
+                "Value": metric,
+                "Accession": f"{metric} Accession"
+            }
+        )
 
         if combined is None:
             combined = df

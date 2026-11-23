@@ -1,5 +1,6 @@
 
 import streamlit as st
+import pandas as pd
 from data_loader import get_company_list, get_financial_data
 from analysis import analyze_financials
 from ai_explainer import generate_explanation
@@ -90,7 +91,9 @@ try:
 
     st.subheader("Historical Financial Data")
 
-    formatted_df = df.copy()
+    formatted_df = df[
+        ["Year End", "Revenue", "Net Income", "Operating Cash Flow"]
+    ].copy()
 
     for column in ["Revenue", "Net Income", "Operating Cash Flow"]:
         formatted_df[column] = formatted_df[column].apply(format_money)
@@ -110,7 +113,6 @@ try:
 
     st.caption("Values shown in billions of USD.")
 
-    
     st.subheader("FairInfo Financial Analysis")
 
     # Allow users to select a historical fiscal year
