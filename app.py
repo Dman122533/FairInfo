@@ -1,6 +1,8 @@
 
 import streamlit as st
 from data_loader import get_company_list, get_financial_data
+from analysis import analyze_financials
+
 def format_money(value):
     if value != value:  # Handles missing values
         return "N/A"
@@ -107,11 +109,81 @@ try:
 
     st.caption("Values shown in billions of USD.")
 
-    st.subheader("FairInfo Risk Alerts")
-    st.info(
-        "Financial inconsistency detection "
-        "will be added in the next development stage."
+    
+    st.subheader("FairInfo Financial Analysis")
+
+    # Allow users to select a historical fiscal year
+    available_years = sorted(
+        df["Year End"].dropna().unique(),
+        reverse=True
     )
+
+    selected_year = st.selectbox(
+        "Select Fiscal Year to Analyze",
+        available_years
+    )
+
+    # Include the selected year and all earlier years
+    historical_df = df[
+        df["Year End"] <= selected_year
+    ].copy()
+
+    analysis = analyze_financials(historical_df)
+    
+    st.caption(
+    f"Analyzing fiscal year ending {selected_year} "
+    "against the preceding fiscal year."
+    )
+
+    col1, col2, col3 = st.columns(3)
+
+    with col1:
+        growth = analysis["revenue_growth"]
+        st.metric(
+            "Revenue Growth",
+            f"{growth:+.2f}%" if growth is not None else "N/A"
+        )
+
+    with col2:
+        growth = analysis["cash_flow_growth"]
+        st.metric(
+            "Operating Cash Flow Change",
+            f"{growth:+.2f}%" if growth is not None else "N/A"
+        )
+
+    with col3:
+        ratio = analysis["cash_flow_to_income"]
+
+        if ratio is not None:
+            st.metric("Cash Flow / Net Income", f"{ratio:.2f}x")
+        else:
+            st.metric("Cash Flow / Net Income", "N/A")
+            st.caption(
+                "Ratio unavailable when net income is "
+                "negative, zero, or missing."
+            )
+
+    st.divider()
+
+    st.subheader("FairInfo Risk Alerts")
+
+    if analysis["alerts"]:
+        for alert in analysis["alerts"]:
+            st.warning(
+                f"**{alert['title']}**\n\n"
+                f"{alert['message']}"
+            )
+    else:
+        st.success(
+            "No financial inconsistencies were detected "
+            "by the current screening rules."
+        )
+
+    st.caption(
+        "FairInfo alerts are preliminary screening indicators, "
+        "not evidence of misconduct or investment advice."
+    )
+
 
 except Exception as error:
     st.error(f"Unable to load SEC data: {error}")
