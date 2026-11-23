@@ -1,0 +1,15 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# Environment variables and API keys
+.env
+.streamlit/secrets.toml
+
+# Editor and system files
+.vscode/
+.DS_Store
+
+# Streamlit cache
+.streamlit/cache/
