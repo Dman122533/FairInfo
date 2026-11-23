@@ -3,6 +3,7 @@ import os
 import requests
 import pandas as pd
 from dotenv import load_dotenv
+import streamlit as st
 
 load_dotenv()
 
@@ -11,6 +12,32 @@ COMPANIES = {
     "Microsoft (MSFT)": "0000789019",
     "NVIDIA (NVDA)": "0001045810"
 }
+
+@st.cache_data(ttl=86400)
+def get_company_list():
+    url = "https://www.sec.gov/files/company_tickers.json"
+
+    response = requests.get(
+        url,
+        headers=HEADERS,
+        timeout=30
+    )
+    response.raise_for_status()
+
+    companies = response.json()
+
+    company_list = {}
+
+    for company in companies.values():
+        ticker = company["ticker"]
+        name = company["title"]
+        cik = str(company["cik_str"]).zfill(10)
+
+        label = f"{ticker} - {name}"
+        company_list[label] = cik
+
+    return dict(sorted(company_list.items()))
+
 
 HEADERS = {
     "User-Agent": os.getenv("SEC_USER_AGENT", ""),
@@ -101,8 +128,7 @@ def get_annual_metric(facts, tags):
     return df[["Year End", "Value"]]
 
 
-def get_financial_data(company):
-    cik = COMPANIES[company]
+def get_financial_data(cik):
     facts = get_company_facts(cik)
 
     combined = None

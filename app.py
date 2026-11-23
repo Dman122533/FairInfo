@@ -1,6 +1,6 @@
 
 import streamlit as st
-from data_loader import COMPANIES, get_financial_data
+from data_loader import get_company_list, get_financial_data
 def format_money(value):
     if value != value:  # Handles missing values
         return "N/A"
@@ -27,20 +27,32 @@ st.write(
 
 st.divider()
 
+
+companies = get_company_list()
+
 company = st.selectbox(
-    "Select a company",
-    list(COMPANIES.keys())
+    "Search for a company by ticker or name",
+    options=list(companies.keys()),
+    index=None,
+    placeholder="Search AAPL, NVIDIA, Tesla..."
 )
+
+if company is None:
+    st.info("Search for a company to view its financial data.")
+    st.stop()
+
+cik = companies[company]
+
 
 
 @st.cache_data(ttl=3600)
-def load_data(selected_company):
-    return get_financial_data(selected_company)
+def load_data(cik):
+    return get_financial_data(cik)
 
 
 try:
     with st.spinner("Retrieving SEC financial data..."):
-        df = load_data(company)
+        df = load_data(cik)
 
     if df.empty:
         st.warning("No financial data was found.")
