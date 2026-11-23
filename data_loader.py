@@ -7,10 +7,20 @@ import streamlit as st
 
 load_dotenv()
 
-COMPANIES = {
-    "Apple (AAPL)": "0000320193",
-    "Microsoft (MSFT)": "0000789019",
-    "NVIDIA (NVDA)": "0001045810"
+# Use Streamlit Cloud secrets when available,
+# otherwise use the local .env file.
+try:
+    sec_user_agent = st.secrets.get(
+        "SEC_USER_AGENT",
+        os.getenv("SEC_USER_AGENT", "")
+    )
+except FileNotFoundError:
+    sec_user_agent = os.getenv("SEC_USER_AGENT", "")
+
+HEADERS = {
+    "User-Agent": sec_user_agent,
+    "Accept-Encoding": "gzip, deflate",
+    "Accept": "application/json"
 }
 
 @st.cache_data(ttl=86400)
