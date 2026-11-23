@@ -2,6 +2,7 @@
 import streamlit as st
 from data_loader import get_company_list, get_financial_data
 from analysis import analyze_financials
+from ai_explainer import generate_explanation
 
 def format_money(value):
     if value != value:  # Handles missing values
@@ -183,6 +184,40 @@ try:
         "FairInfo alerts are preliminary screening indicators, "
         "not evidence of misconduct or investment advice."
     )
+
+    st.divider()
+
+    st.subheader("FairInfo AI Financial Explanation")
+
+    st.write(
+        "Generate a plain-English explanation of the "
+        "selected company's financial performance."
+    )
+
+    if st.button("Generate AI Explanation", type="primary"):
+        try:
+            with st.spinner("Analyzing financial information..."):
+                explanation = generate_explanation(
+                    company,
+                    historical_df,
+                    analysis
+                )
+
+            st.session_state["ai_explanation"] = explanation
+            st.session_state["ai_selection"] = (company, selected_year)
+
+        except Exception as error:
+            st.error(f"AI explanation unavailable: {error}")
+
+    if st.session_state.get("ai_selection") == (company, selected_year):
+        st.markdown(st.session_state["ai_explanation"])
+
+    st.caption(
+        "AI explanations use the financial figures and "
+        "screening results supplied by FairInfo. "
+        "They are not independently verified financial advice."
+    )
+
 
 
 except Exception as error:
