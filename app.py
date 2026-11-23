@@ -1,5 +1,15 @@
 
 import streamlit as st
+from data_loader import COMPANIES, get_financial_data
+def format_money(value):
+    if value != value:  # Handles missing values
+        return "N/A"
+    elif abs(value) >= 1_000_000_000:
+        return f"${value / 1_000_000_000:,.2f}B"
+    elif abs(value) >= 1_000_000:
+        return f"${value / 1_000_000:,.2f}M"
+    else:
+        return f"${value:,.2f}"
 
 st.set_page_config(
     page_title="FairInfo",
@@ -19,31 +29,82 @@ st.divider()
 
 company = st.selectbox(
     "Select a company",
-    ["Apple (AAPL)", "Microsoft (MSFT)", "NVIDIA (NVDA)"]
+    list(COMPANIES.keys())
 )
 
-st.subheader("Financial Overview")
 
-col1, col2, col3 = st.columns(3)
+@st.cache_data(ttl=3600)
+def load_data(selected_company):
+    return get_financial_data(selected_company)
 
-with col1:
-    st.metric("Revenue", "Coming Soon")
 
-with col2:
-    st.metric("Net Income", "Coming Soon")
+try:
+    with st.spinner("Retrieving SEC financial data..."):
+        df = load_data(company)
 
-with col3:
-    st.metric("Operating Cash Flow", "Coming Soon")
+    if df.empty:
+        st.warning("No financial data was found.")
+        st.stop()
 
-st.divider()
+    latest = df.iloc[-1]
 
-st.subheader("Financial Analysis")
-st.info("Financial analysis will appear here.")
+    st.subheader("Financial Overview")
+    st.caption(f"Latest available fiscal year: {latest['Year End']}")
 
-st.subheader("FairInfo Risk Alerts")
-st.info("Potential financial inconsistencies will appear here.")
+    col1, col2, col3 = st.columns(3)
+
+    metrics = [
+        ("Revenue", col1),
+        ("Net Income", col2),
+        ("Operating Cash Flow", col3)
+    ]
+
+    for metric, column in metrics:
+        value = latest[metric]
+
+        if st.session_state.get("unused", False):
+            pass
+
+        with column:
+            if value != value:  # Missing value
+                st.metric(metric, "N/A")
+            else:
+                st.metric(metric, f"${value / 1e9:,.2f}B")
+
+    st.divider()
+
+    st.subheader("Historical Financial Data")
+
+    formatted_df = df.copy()
+
+    for column in ["Revenue", "Net Income", "Operating Cash Flow"]:
+        formatted_df[column] = formatted_df[column].apply(format_money)
+
+    st.dataframe(
+        formatted_df,
+        use_container_width=True,
+        hide_index=True
+    )
+    st.subheader("Financial Trends")
+
+    chart_data = df.set_index("Year End")[
+        ["Revenue", "Net Income", "Operating Cash Flow"]
+    ] / 1e9
+
+    st.line_chart(chart_data)
+
+    st.caption("Values shown in billions of USD.")
+
+    st.subheader("FairInfo Risk Alerts")
+    st.info(
+        "Financial inconsistency detection "
+        "will be added in the next development stage."
+    )
+
+except Exception as error:
+    st.error(f"Unable to load SEC data: {error}")
 
 st.caption(
-    "FairInfo is an educational research prototype, "
-    "not personalized investment advice."
+    "Source: SEC EDGAR | "
+    "Educational research prototype, not investment advice."
 )
